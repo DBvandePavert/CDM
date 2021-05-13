@@ -8,6 +8,16 @@ CDM Research project by
 something something main description
 """
 
+import pandas
+import os
 
-def load_some_data():
-    print("data not yet loaded")
+os.chdir("..")
+
+
+def load_data(file):
+    df_test = pandas.read_json(file, orient='records')
+    return df_test
+
+
+def get_stats(df):
+    print(df.describe())

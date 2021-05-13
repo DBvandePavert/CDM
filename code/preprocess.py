@@ -8,9 +8,9 @@ CDM Research project by
 something something preprocess description
 """
 
+import pandas
 
-# Makes Foo
-def make_foo(input):
-    if input:
-        return "foo"
-    return "bar"
+
+def preprocess(df, flags):
+    return df
+
