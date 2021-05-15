@@ -19,10 +19,9 @@ dev_file = 'data/friends_dev.json'
 
 def main(input):
     df = load_data(test_file)
-    # get_stats(df)
     df_clean = preprocess(df, ["flags"])
-
-    show_scene(df, 8)
+    print(df_clean)
+    # show_scene(df, 8)
 
 
 def show_scene(df, scene):
