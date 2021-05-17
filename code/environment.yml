@@ -1,0 +1,9 @@
+name: CDM
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - pandas
+  - numpy
+  - pytorch
+  - transformers
