@@ -59,5 +59,4 @@ dataset = FriendsDataset(json_file='data/json/friends_season_01.json', tokenizer
 dataloader = DataLoader(dataset, shuffle=True, num_workers=0)  # Some weird stuff with the inclusion of batch sizes
 
 for x in dataloader:
-    print(x)
     break
