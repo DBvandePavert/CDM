@@ -18,9 +18,7 @@ from transformers import BertTokenizer, BertForPreTraining
 
 os.chdir("..")
 
-
 class FriendsDataset(Dataset):
-
     def __init__(self, json_file, tokenizer=None):
         """
         Args:
@@ -38,12 +36,14 @@ class FriendsDataset(Dataset):
                 zap = []
 
                 for u in s["utterances"]:
-                    bar = tokenizer(u['transcript'])
+                    utterance = tokenizer(u['transcript'])
                     if len(u['speakers']) == 0:
                         speaker = 'none'
                     else:
                         speaker = u['speakers'][0]
-                    zap.append([s["scene_id"], speaker, bar])
+                    # zap.append((s["scene_id"], utterance, speaker)) # TODO construct a dict to convert labels
+                    zap.append((torch.tensor([0]), torch.tensor(utterance), torch.tensor([0])))
+
                 self.foo.append(zap)
 
     def __len__(self):
@@ -52,11 +52,14 @@ class FriendsDataset(Dataset):
     def __getitem__(self, idx):
         return self.foo[idx]
 
-
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 dataset = FriendsDataset(json_file='data/json/friends_season_01.json', tokenizer=tokenizer.encode)
-
 dataloader = DataLoader(dataset, shuffle=True, num_workers=0)  # Some weird stuff with the inclusion of batch sizes
 
-for x in dataloader:
-    break
+# Test dataloader
+# for scene in dataloader:
+#     for (id, utterance, speaker) in scene:
+#         print(id)
+#         print(utterance)
+#         print(speaker)
+#         quit()
