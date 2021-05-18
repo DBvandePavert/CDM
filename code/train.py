@@ -19,7 +19,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, use_fast=True)
 model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint, num_labels=num_labels)
 
 # Load data
-dataset = FriendsDataset(json_file='data/json/friends_season_01.json', tokenizer=tokenizer.encode)
+dataset = FriendsDataset(json_file='data/json/friends_season_01.json', tokenizer=tokenizer)
 dataloader = DataLoader(dataset, shuffle=True, num_workers=0)  # Some weird stuff with the inclusion of batch sizes
 
 training_args = TrainingArguments(
@@ -41,19 +41,18 @@ model.train()
 optim = AdamW(model.parameters(), lr=5e-5)
 
 for epoch in range(1):
-    for scene in dataloader:
-        for id, utterance, speaker in scene:
-            print(id)
-            print(utterance)
-            print(speaker)
-            optim.zero_grad()
-            input_ids = id.to(device)
-            attention_mask = utterance.to(device)
-            labels = speaker.to(device)
-            outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-            loss = outputs[0]
-            loss.backward()
-            optim.step()
-            quit()
+    for id, utterance, speaker in dataloader    :
+        print(id)
+        print(utterance)
+        print(speaker)
+        optim.zero_grad()
+        input_ids = id.to(device)
+        attention_mask = utterance.to(device)
+        labels = speaker.to(device)
+        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+        loss = outputs[0]
+        loss.backward()
+        optim.step()
+        quit()
 
 model.eval()
