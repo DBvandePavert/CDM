@@ -19,7 +19,7 @@ from transformers.file_utils import PaddingStrategy
 os.chdir("..")
 
 
-speaker_to_class = {
+speaker_to_label = {
     "Chandler Bing": 0,
     "Joey Tribbiani": 1,
     "Monica Geller": 2,
@@ -45,15 +45,15 @@ def create_dataset(json_file):
                 
                 # Filter utterances with zero or more than one speakers
                 if len(u['speakers']) == 0 or len(u['speakers']) > 1:
-                    speaker = speaker_to_class["other"]
+                    speaker = speaker_to_label["other"]
 
                 # Filter side characters
-                elif u['speakers'][0] not in speaker_to_class:
-                    speaker = speaker_to_class["other"]
+                elif u['speakers'][0] not in speaker_to_label:
+                    speaker = speaker_to_label["other"]
 
                 # Keep main characters
                 else:
-                    speaker = speaker_to_class[u['speakers'][0]]
+                    speaker = speaker_to_label[u['speakers'][0]]
 
                 ids.append(s["scene_id"])
                 utterances.append(u['transcript'])
@@ -87,6 +87,34 @@ class FriendsDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.dataset[idx]
+
+
+    def speaker_to_label(self, str):
+        return {
+            "Chandler Bing": 0,
+            "Joey Tribbiani": 1,
+            "Monica Geller": 2,
+            "Phoebe Buffay": 3,
+            "Rachel Green": 4,
+            "Ross Geller": 5,
+            "other": 6
+        }[str]
+
+
+    def label_to_speaker(self, str):
+        return {
+            0: "Chandler Bing",
+            1: "Joey Tribbiani",
+            2: "Monica Geller",
+            3: "Phoebe Buffay",
+            4: "Rachel Green",
+            5: "Ross Geller",
+            6: "other"
+        }[str]
+
+    
+    def num_labels(self):
+        return 7
 
 
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
