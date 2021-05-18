@@ -1,54 +1,60 @@
-import os
-import numpy as np
 import torch
+import argparse
 
-from torch.utils.data import Dataset, DataLoader
-from collections import Counter
+from torch.utils.data import DataLoader
 from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer, AdamW
 from transformers import AutoTokenizer
 
 from dataloader import FriendsDataset
 
-# Config
-batch_size = 1  
-num_labels = 7
 
-# Load model
-model_checkpoint = "distilbert-base-uncased"
-tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, use_fast=True)
-model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint, num_labels=num_labels)
+def main(training_args, tokenizer):
+    # Load data
+    dataset = FriendsDataset(json_file='data/json/friends_season_01.json', tokenizer=tokenizer)
+    dataloader = DataLoader(dataset, shuffle=True, num_workers=0)
 
-# Load data
-dataset = FriendsDataset(json_file='data/json/friends_season_01.json', tokenizer=tokenizer)
-dataloader = DataLoader(dataset, shuffle=True, num_workers=0)  # Some weird stuff with the inclusion of batch sizes
+    # Load model
+    model = AutoModelForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=dataset.num_labels())
 
-training_args = TrainingArguments(
-    output_dir='./results',          # output directory
-    num_train_epochs=3,              # total number of training epochs
-    per_device_train_batch_size=batch_size,   # batch size per device during training
-    per_device_eval_batch_size=64,   # batch size for evaluation
-    warmup_steps=500,                # number of warmup steps for learning rate scheduler
-    weight_decay=0.01,               # strength of weight decay
-    logging_dir='./logs',            # directory for storing logs
-    logging_steps=10,
-)
+    # Simple trainer
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    model.to(device)
+    model.train()
 
-# Simple trainer
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-model.to(device)
-model.train()
+    optim = AdamW(model.parameters(), lr=args.learning_rate)
 
-optim = AdamW(model.parameters(), lr=5e-5)
+    for epoch in range(1):
+        for id, utterance, speaker in dataloader:
+            optim.zero_grad()
+            input_ids = id.to(device)
+            attention_mask = utterance.to(device)
+            labels = speaker.to(device)
+            outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+            loss = outputs[0]
+            loss.backward()
+            optim.step()
+        print(f"Epoch: {epoch}")
+        model.eval()
 
-for epoch in range(1):
-    for id, utterance, speaker in dataloader:
-        optim.zero_grad()
-        input_ids = id.to(device)
-        attention_mask = utterance.to(device)
-        labels = speaker.to(device)
-        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-        loss = outputs[0]
-        loss.backward()
-        optim.step()
 
-model.eval()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Add parameters for training.')
+    parser.add_argument('--batch_size', type=int, default=4, help='the batch size')
+    parser.add_argument('--model_checkpoint', type=str, default='distilbert-base-uncased', help='specify the model checkpoint')
+    parser.add_argument('--learning_rate', type=float, default=5e-5, help='the learning rate')
+    args = parser.parse_args()
+
+    training_args = TrainingArguments(
+        output_dir='./results',          # output directory
+        num_train_epochs=3,              # total number of training epochs
+        per_device_train_batch_size=args.batch_size,   # batch size per device during training
+        per_device_eval_batch_size=64,   # batch size for evaluation
+        warmup_steps=500,                # number of warmup steps for learning rate scheduler
+        weight_decay=0.01,               # strength of weight decay
+        logging_dir='./logs',            # directory for storing logs
+        logging_steps=10,
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(args.model_checkpoint, use_fast=True)
+
+    main(training_args, tokenizer)
