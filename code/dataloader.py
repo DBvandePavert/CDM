@@ -69,13 +69,13 @@ class FriendsDataset(Dataset):
         """
         # Tokenize utterances
         ids, utterances, speakers = create_dataset(json_file)
-        tokenized_utterances = tokenizer(utterances, truncation=True, padding=True)
+        tokenized_utterances = tokenizer(utterances[:2], truncation=True, padding=True)
 
         # Construct a tokenized padded dataset list
         self.dataset = []
-        for i, (id, utterance, speaker) in enumerate(zip(ids, tokenized_utterances['input_ids'], speakers)):
+        for id, utterance, speaker in zip(tokenized_utterances["input_ids"], tokenized_utterances["attention_mask"], speakers):
             self.dataset.append((
-                torch.tensor([i]),
+                torch.tensor(id),
                 torch.tensor(utterance),
                 torch.tensor([speaker])
             ))

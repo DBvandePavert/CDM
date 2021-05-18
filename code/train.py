@@ -10,7 +10,7 @@ from transformers import AutoTokenizer
 from dataloader import FriendsDataset
 
 # Config
-batch_size = 1
+batch_size = 1  
 num_labels = 7
 
 # Load model
@@ -41,10 +41,7 @@ model.train()
 optim = AdamW(model.parameters(), lr=5e-5)
 
 for epoch in range(1):
-    for id, utterance, speaker in dataloader    :
-        print(id)
-        print(utterance)
-        print(speaker)
+    for id, utterance, speaker in dataloader:
         optim.zero_grad()
         input_ids = id.to(device)
         attention_mask = utterance.to(device)
@@ -53,6 +50,5 @@ for epoch in range(1):
         loss = outputs[0]
         loss.backward()
         optim.step()
-        quit()
 
 model.eval()
