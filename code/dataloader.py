@@ -11,7 +11,7 @@ import json
 import numpy as np
 
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from transformers import BertTokenizer, BertForPreTraining
 from transformers.file_utils import PaddingStrategy
 
@@ -58,6 +58,28 @@ def create_dataset(json_files):
                     utterances.append(u['transcript'])
                     speakers.append(speaker)
     return ids, utterances, speakers
+
+
+def create_splits(dataset, ratios):
+    """
+    Args:
+        dataset (Dataset): PyTorch dataset object
+        ratios (list): List of ratios to split, e.g. [0.8, 0.1, 0.1]
+    """
+    assert np.sum(ratios) == 1
+
+    # calculate lengths of split according to ratios
+    length = len(dataset)
+    lengths = [ratio*length for ratio in ratios]
+    floored_lengths = [int(np.floor(length)) for length in lengths]
+    remainders = [original - floored for original, floored in zip(lengths, floored_lengths)]
+    lengths = floored_lengths
+    for i in range(length - np.sum(lengths)):
+        index = np.argsort(remainders)[::-1][i]
+        lengths[index] = lengths[index] + 1
+
+    # returns splits as tuples
+    return random_split(dataset, lengths)
 
 
 class FriendsDataset(Dataset):
@@ -130,4 +152,5 @@ if __name__ == '__main__':
         'data/json/friends_season_09.json',
         'data/json/friends_season_10.json'
     ], tokenizer=tokenizer)
-    dataloader = DataLoader(dataset, shuffle=True, num_workers=0)
+    train_set, val_set, test_set = create_splits(dataset, [0.8, 0.1, 0.1])
+    train_loader = DataLoader(train_set, shuffle=True, num_workers=0)

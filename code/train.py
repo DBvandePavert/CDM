@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer, AdamW, BertForSequenceClassification
 from transformers import AutoTokenizer
 
-from dataloader import FriendsDataset
+from dataloader import FriendsDataset, create_splits
 
 
 def main(training_args, tokenizer):
@@ -22,7 +22,8 @@ def main(training_args, tokenizer):
         'data/json/friends_season_09.json',
         'data/json/friends_season_10.json'
     ], tokenizer=tokenizer)
-    dataloader = DataLoader(dataset, shuffle=True, num_workers=0)
+    train_set, val_set, test_set = create_splits(dataset, [0.8, 0.1, 0.1])
+    train_loader = DataLoader(train_set, shuffle=True, num_workers=0)
 
     # Load model
     # model = AutoModelForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=dataset.num_labels())
@@ -36,7 +37,7 @@ def main(training_args, tokenizer):
     optim = AdamW(model.parameters(), lr=args.learning_rate)
 
     for epoch in range(training_args.num_train_epochs):
-        for id, utterance, speaker in dataloader:
+        for id, utterance, speaker in train_loader:
             optim.zero_grad()
             input_ids = id.to(device)
             attention_mask = utterance.to(device)
