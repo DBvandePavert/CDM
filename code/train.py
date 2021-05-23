@@ -10,7 +10,18 @@ from dataloader import FriendsDataset
 
 def main(training_args, tokenizer):
     # Load data
-    dataset = FriendsDataset(json_file='data/json/friends_season_01.json', tokenizer=tokenizer)
+    dataset = FriendsDataset([
+        'data/json/friends_season_01.json',
+        'data/json/friends_season_02.json',
+        'data/json/friends_season_03.json',
+        'data/json/friends_season_04.json',
+        'data/json/friends_season_05.json',
+        'data/json/friends_season_06.json',
+        'data/json/friends_season_07.json',
+        'data/json/friends_season_08.json',
+        'data/json/friends_season_09.json',
+        'data/json/friends_season_10.json'
+    ], tokenizer=tokenizer)
     dataloader = DataLoader(dataset, shuffle=True, num_workers=0)
 
     # Load model
@@ -37,6 +48,7 @@ def main(training_args, tokenizer):
         print(f"Epoch: {epoch}")
         model.eval()
 
+    torch.save(model.state_dict(), training_args.output_dir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add parameters for training.')
@@ -48,7 +60,7 @@ if __name__ == '__main__':
 
     training_args = TrainingArguments(
         output_dir='./results',          # output directory
-        num_train_epochs=3,              # total number of training epochs
+        num_train_epochs=1000,              # total number of training epochs
         per_device_train_batch_size=args.batch_size,   # batch size per device during training
         per_device_eval_batch_size=64,   # batch size for evaluation
         warmup_steps=500,                # number of warmup steps for learning rate scheduler
@@ -60,3 +72,7 @@ if __name__ == '__main__':
     tokenizer = AutoTokenizer.from_pretrained(args.model_checkpoint, use_fast=True)
 
     main(training_args, tokenizer)
+
+    # model = BertForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=7)
+    # model.load_state_dict(torch.load('./results'))
+    # model.eval()

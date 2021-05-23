@@ -6,7 +6,6 @@ CDM Research project by
 -
 TODO something something main description
 """
-import pandas
 import os
 import json
 import numpy as np
@@ -30,46 +29,46 @@ speaker_to_label = {
 }
 
 
-def create_dataset(json_file):
-    with open(json_file) as f:
-        data = json.load(f)
+def create_dataset(json_files):
 
     ids = []
     utterances = []
     speakers = []
 
-    for e in data["episodes"]:
-        for s in e["scenes"]:
-            for u in s["utterances"]:
-                utterance = u['transcript']
-                
-                # Filter utterances with zero or more than one speakers
-                if len(u['speakers']) == 0 or len(u['speakers']) > 1:
-                    speaker = speaker_to_label["other"]
+    for file in json_files:
+        with open(file) as f:
+            data = json.load(f)
+        for e in data["episodes"]:
+            for s in e["scenes"]:
+                for u in s["utterances"]:
 
-                # Filter side characters
-                elif u['speakers'][0] not in speaker_to_label:
-                    speaker = speaker_to_label["other"]
+                    # Filter utterances with zero or more than one speakers
+                    if len(u['speakers']) == 0 or len(u['speakers']) > 1:
+                        speaker = speaker_to_label["other"]
 
-                # Keep main characters
-                else:
-                    speaker = speaker_to_label[u['speakers'][0]]
+                    # Filter side characters
+                    elif u['speakers'][0] not in speaker_to_label:
+                        speaker = speaker_to_label["other"]
 
-                ids.append(s["scene_id"])
-                utterances.append(u['transcript'])
-                speakers.append(speaker)
+                    # Keep main characters
+                    else:
+                        speaker = speaker_to_label[u['speakers'][0]]
+
+                    ids.append(s["scene_id"])
+                    utterances.append(u['transcript'])
+                    speakers.append(speaker)
     return ids, utterances, speakers
 
 
 class FriendsDataset(Dataset):
-    def __init__(self, json_file, tokenizer=None):
+    def __init__(self, json_files, tokenizer=None):
         """
         Args:
             json_file (string): Path to the json file with annotations.
         """
         # Tokenize utterances
-        ids, utterances, speakers = create_dataset(json_file)
-        tokenized_utterances = tokenizer(utterances[:2], truncation=True, padding=True)
+        ids, utterances, speakers = create_dataset(json_files)
+        tokenized_utterances = tokenizer(utterances, truncation=True, padding=True)
 
         # Construct a tokenized padded dataset list
         self.dataset = []
@@ -117,6 +116,18 @@ class FriendsDataset(Dataset):
         return 7
 
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-dataset = FriendsDataset(json_file='data/json/friends_season_01.json', tokenizer=tokenizer)
-dataloader = DataLoader(dataset, shuffle=True, num_workers=0)
+if __name__ == '__main__':
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    dataset = FriendsDataset([
+        'data/json/friends_season_01.json',
+        'data/json/friends_season_02.json',
+        'data/json/friends_season_03.json',
+        'data/json/friends_season_04.json',
+        'data/json/friends_season_05.json',
+        'data/json/friends_season_06.json',
+        'data/json/friends_season_07.json',
+        'data/json/friends_season_08.json',
+        'data/json/friends_season_09.json',
+        'data/json/friends_season_10.json'
+    ], tokenizer=tokenizer)
+    dataloader = DataLoader(dataset, shuffle=True, num_workers=0)
