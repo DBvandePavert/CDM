@@ -8,6 +8,7 @@ TODO something something main description
 """
 import os
 import json
+import pickle
 import numpy as np
 
 import torch
@@ -15,7 +16,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from transformers import BertTokenizer, BertForPreTraining
 from transformers.file_utils import PaddingStrategy
 
-os.chdir("..")
+# os.chdir("..")
 
 
 speaker_to_label = {
@@ -88,26 +89,39 @@ class FriendsDataset(Dataset):
         Args:
             json_file (string): Path to the json file with annotations.
         """
-        # Tokenize utterances
-        ids, utterances, speakers = create_dataset(json_files)
-        tokenized_utterances = tokenizer(utterances, truncation=True, padding=True)
+        # # Tokenize utterances
+        # ids, utterances, speakers = create_dataset(json_files)
+        # tokenized_utterances = tokenizer(utterances, truncation=True, padding=True)
 
-        # Construct a tokenized padded dataset list
-        self.dataset = []
-        for id, utterance, speaker in zip(tokenized_utterances["input_ids"], tokenized_utterances["attention_mask"], speakers):
-            self.dataset.append((
-                torch.tensor(id),
-                torch.tensor(utterance),
-                torch.tensor([speaker])
-            ))
+        # # Construct a tokenized padded dataset list
+        # self.dataset = []
+        # for id, utterance, speaker in zip(tokenized_utterances["input_ids"], tokenized_utterances["attention_mask"], speakers):
+        #     self.dataset.append((
+        #         torch.tensor(id),
+        #         torch.tensor(utterance),
+        #         torch.tensor([speaker])
+        #     ))
+
+        with open('../data/utterance_ids.txt') as f:
+            self.utterance_ids = [line.rstrip('\n') for line in f.readlines()]
 
 
     def __len__(self):
-        return len(self.dataset)
+        return len(self.utterance_ids)
 
 
     def __getitem__(self, idx):
-        return self.dataset[idx]
+        id = self.utterance_ids[idx]
+        scene_id = id[:11]
+        with open('../data/scenes/{}'.format(scene_id), 'rb') as f:
+            scene = pickle.load(f)
+
+        input_ids, attention_mask, label = scene[id]
+        return (
+            torch.tensor(input_ids),
+            torch.tensor(attention_mask),
+            torch.tensor([label])
+        )
 
 
     def speaker_to_label(self, str):
