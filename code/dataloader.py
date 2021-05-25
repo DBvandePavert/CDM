@@ -13,7 +13,7 @@ import numpy as np
 
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-from transformers import BertTokenizer, BertForPreTraining
+from transformers import BertForPreTraining
 from transformers.file_utils import PaddingStrategy
 
 # os.chdir("..")
@@ -84,23 +84,11 @@ def create_splits(dataset, ratios):
 
 
 class FriendsDataset(Dataset):
-    def __init__(self, json_files, tokenizer=None):
+    def __init__(self, json_files):
         """
         Args:
             json_file (string): Path to the json file with annotations.
         """
-        # # Tokenize utterances
-        # ids, utterances, speakers = create_dataset(json_files)
-        # tokenized_utterances = tokenizer(utterances, truncation=True, padding=True)
-
-        # # Construct a tokenized padded dataset list
-        # self.dataset = []
-        # for id, utterance, speaker in zip(tokenized_utterances["input_ids"], tokenized_utterances["attention_mask"], speakers):
-        #     self.dataset.append((
-        #         torch.tensor(id),
-        #         torch.tensor(utterance),
-        #         torch.tensor([speaker])
-        #     ))
 
         with open('../data/utterance_ids.txt') as f:
             self.utterance_ids = [line.rstrip('\n') for line in f.readlines()]
@@ -153,7 +141,6 @@ class FriendsDataset(Dataset):
 
 
 if __name__ == '__main__':
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     dataset = FriendsDataset([
         'data/json/friends_season_01.json',
         'data/json/friends_season_02.json',
@@ -165,6 +152,6 @@ if __name__ == '__main__':
         'data/json/friends_season_08.json',
         'data/json/friends_season_09.json',
         'data/json/friends_season_10.json'
-    ], tokenizer=tokenizer)
+    ])
     train_set, val_set, test_set = create_splits(dataset, [0.8, 0.1, 0.1])
     train_loader = DataLoader(train_set, shuffle=True, num_workers=0)
