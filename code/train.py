@@ -51,22 +51,15 @@ def main(training_args, args):
     # Load model
     model = BertForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=dataset.num_labels())
 
+    # Load data
+    train_set, val_set, test_set = create_splits(dataset, [0.8, 0.1, 0.1])
+    train_loader = DataLoader(train_set, batch_size=training_args.per_device_train_batch_size, shuffle=True, num_workers=0)
+    test_loader = DataLoader(test_set, batch_size=training_args.per_device_train_batch_size, shuffle=True, num_workers=0)
+
     # Simple trainer
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model.to(device)
     model.train()
-
-    # Load data
-    train_set, val_set, test_set = create_splits(dataset, [0.8, 0.1, 0.1])
-    train_loader = DataLoader(train_set, shuffle=True, num_workers=0)
-    test_loader = DataLoader(test_set, shuffle=True, num_workers=0)
-
-    
-    # EVAL
-    model.eval()
-    evaluate(None, test_loader, device)
-    model.train()
-    # END_EVAL
 
     optim = AdamW(model.parameters(), lr=training_args.learning_rate)
     running_loss = 0.0
@@ -87,16 +80,15 @@ def main(training_args, args):
                 print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
                 running_loss = 0.0
         print(f"Epoch: {epoch}")
-
         model.eval()
         evaluate(model, test_loader, device)
-        torch.save(model.state_dict(), training_args.output_dir + "_" + str(epoch))
+        torch.save(model.state_dict(), training_args.output_dir + "_" + str(epoch) + ".pth")
         model.train()
         
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add parameters for training.')
-    parser.add_argument('--batch_size', type=int, default=512, help='the batch size')
+    parser.add_argument('--batch_size', type=int, default=16, help='the batch size')
     parser.add_argument('--model_checkpoint', type=str, default='bert-base-uncased', help='specify the model checkpoint')
     parser.add_argument('--learning_rate', type=float, default=1e-3, help='the learning rate')
     args = parser.parse_args()
@@ -105,11 +97,11 @@ if __name__ == '__main__':
         output_dir='./results',          # output directory
         num_train_epochs=1000,              # total number of training epochs
         per_device_train_batch_size=args.batch_size,   # batch size per device during training
-        per_device_eval_batch_size=512,   # batch size for evaluation
+        per_device_eval_batch_size=8,   # batch size for evaluation
         warmup_steps=500,                # number of warmup steps for learning rate scheduler
         weight_decay=0.01,               # strength of weight decay
         logging_dir='./logs',            # directory for storing logs
-        logging_steps=10,
+        logging_steps=100,
         learning_rate=args.learning_rate
     )
 
