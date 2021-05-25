@@ -15,22 +15,27 @@ def evaluate(model, test_loader, device):
 
     if not model:
         model = BertForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=7)
-        model.load_state_dict(torch.load('./results_9.pth'))
+        model.load_state_dict(torch.load('./results_2.pth'))
         model.to(device)
 
-    correct = 0
-    total = 0
+    correct = torch.zeros((6))
+    total = torch.zeros((6))
 
-    model.eval()
     for id, utterance, speaker in test_loader:
         input_ids = id.to(device)
         attention_mask = utterance.to(device)
         labels = speaker.to(device)
         outputs = model(input_ids)
         _, predicted = torch.max(outputs.logits, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-    print('Accuracy: %d %%' % (100 * correct / total))
+
+        for pred, label in zip(predicted, labels):
+            if pred == label:
+                correct[label] += 1
+            total[label] += 1
+
+        # print("label:", labels, "predicted:", predicted, "correct?", (predicted == labels).sum().item())
+    print(correct / total)
+    print(correct.sum() / total.sum())
 
 
 def main(training_args, args):
@@ -58,7 +63,7 @@ def main(training_args, args):
 
     # Simple trainer
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    model.to(device)
+    model.to(device)  
     model.train()
 
     optim = AdamW(model.parameters(), lr=training_args.learning_rate)
@@ -70,6 +75,7 @@ def main(training_args, args):
             input_ids = id.to(device)
             attention_mask = utterance.to(device)
             labels = speaker.to(device)
+                    
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
             loss = outputs.loss
             loss.backward()
@@ -79,6 +85,12 @@ def main(training_args, args):
             if i % 100 == 99:    # print every 2000 mini-batches
                 print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
                 running_loss = 0.0
+
+                model.eval()
+                evaluate(model, test_loader, device)
+                model.train()
+                
+                
         print(f"Epoch: {epoch}")
         model.eval()
         evaluate(model, test_loader, device)
@@ -90,7 +102,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add parameters for training.')
     parser.add_argument('--batch_size', type=int, default=16, help='the batch size')
     parser.add_argument('--model_checkpoint', type=str, default='bert-base-uncased', help='specify the model checkpoint')
-    parser.add_argument('--learning_rate', type=float, default=1e-3, help='the learning rate')
+    parser.add_argument('--learning_rate', type=float, default=2e-5, help='the learning rate')
     args = parser.parse_args()
 
     training_args = TrainingArguments(
