@@ -1,9 +1,11 @@
 import torch
 import argparse
+from collections import Counter
 
 from torch.utils.data import DataLoader
 from sklearn.metrics import confusion_matrix, f1_score
 from dataloader import FriendsDataset, create_splits
+from helpers import get_number_of_speakers
 
 try:
   from transformers import AdamW, BertForSequenceClassification
@@ -24,7 +26,13 @@ def evaluate(model, test_loader, device):
     pred_list = []
     label_list = []
 
+    speakers_correct = []
+    speakers_total = []
+
     for id, utterance, speaker in test_loader:
+        scene_id = id[:11]
+        number_of_speakers = get_number_of_speakers(scene_id)
+
         input_ids = id.to(device)
         attention_mask = utterance.to(device)
         labels = speaker.to(device)
@@ -38,12 +46,29 @@ def evaluate(model, test_loader, device):
         
             if pred == label:
                 correct[label] += 1
+                speakers_correct.append(number_of_speakers)
+            speakers_total.append(number_of_speakers)
             total[label] += 1
 
     print(correct / total)
     print(correct.sum() / total.sum())
     print("conf", confusion_matrix(pred_list, label_list))
+
+    speakers_correct_count = Counter(speakers_correct)
+    speakers_total_count = Counter(speakers_total)
+    speaker_distribution = []
+    speaker_acc = []
+
+    for i in range(1, 8):
+        total = speakers_total_count[i]
+        speaker_distribution.append(total)
+        if total:
+            speaker_acc.append(speakers_correct_count[i] / total)
+        else:
+            speaker_acc.append(0)
     
+    print(speaker_distribution)
+    print(speaker_acc)
 
 def main(args):
     torch.manual_seed(123)
