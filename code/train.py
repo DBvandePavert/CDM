@@ -2,7 +2,7 @@ import torch
 import argparse
 
 from torch.utils.data import DataLoader
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, f1_score
 from dataloader import FriendsDataset, create_splits
 
 try:
@@ -14,12 +14,12 @@ except:
 def evaluate(model, test_loader, device):
 
     if not model:
-        model = BertForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=6)
-        model.load_state_dict(torch.load('./results_lr_5e5_concatenated_3.pth'))
+        model = BertForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=7)
+        model.load_state_dict(torch.load('./results_lr_2e5_concatenated_other_3.pth'))
         model.to(device)
 
-    correct = torch.zeros((6))
-    total = torch.zeros((6))
+    correct = torch.zeros((7))
+    total = torch.zeros((7))
     
     pred_list = []
     label_list = []
@@ -42,10 +42,12 @@ def evaluate(model, test_loader, device):
 
     print(correct / total)
     print(correct.sum() / total.sum())
-    print(confusion_matrix(pred_list, label_list))
+    print("conf", confusion_matrix(pred_list, label_list))
     
 
 def main(args):
+    torch.manual_seed(123)
+
     # Load data
     dataset = FriendsDataset([
         'data/json/friends_season_01.json',
@@ -114,13 +116,13 @@ def main(args):
         print(f"Epoch: {epoch}")
         model.eval()
         evaluate(model, test_loader, device)
-        torch.save(model.state_dict(), args.output_dir + "_lr_5e5_concatenated_" + str(epoch) + ".pth")
+        torch.save(model.state_dict(), args.output_dir + "_lr_2e5_other_" + str(epoch) + ".pth")
         model.train()
         
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add parameters for training.')
-    parser.add_argument('--batch_size', type=int, default=6, help='the batch size')
+    parser.add_argument('--batch_size', type=int, default=16, help='the batch size')
     parser.add_argument('--model_checkpoint', type=str, default='bert-base-uncased', help='specify the model checkpoint')
     parser.add_argument('--learning_rate', type=float, default=2e-5, help='the learning rate')
     parser.add_argument('--output_dir', type=str, default="./results", help='the learning rate')
