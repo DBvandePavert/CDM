@@ -29,9 +29,7 @@ def evaluate(model, test_loader, device):
     speakers_correct = []
     speakers_total = []
 
-    for id, ids, utterance, speaker in test_loader:
-        scene_id = id[:11]
-        number_of_speakers = get_number_of_speakers(scene_id)
+    for uids, ids, utterance, speaker in test_loader:
 
         input_ids = ids.to(device)
         attention_mask = utterance.to(device)
@@ -39,7 +37,9 @@ def evaluate(model, test_loader, device):
         outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
         _, predicted = torch.max(outputs[1], 1)
 
-        for pred, label in zip(predicted, labels):
+        for uid, pred, label in zip(uids, predicted, labels):
+            scene_id = uid[:11]
+            number_of_speakers = get_number_of_speakers(scene_id)
         
             pred_list.append(int(pred))
             label_list.append(int(label))        
