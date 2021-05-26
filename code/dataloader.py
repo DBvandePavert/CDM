@@ -13,10 +13,8 @@ import numpy as np
 
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-from transformers import BertForPreTraining
-from transformers.file_utils import PaddingStrategy
 
-# os.chdir("..")
+os.chdir("..")
 
 
 speaker_to_label = {
@@ -84,7 +82,7 @@ def create_splits(dataset, ratios):
 
 
 class FriendsDataset(Dataset):
-    def __init__(self, json_files):
+    def __init__(self, return_uids=False):
         """
         Args:
             json_file (string): Path to the json file with annotations.
@@ -92,6 +90,8 @@ class FriendsDataset(Dataset):
 
         with open('../data/utterance_ids.txt') as f:
             self.utterance_ids = [line.rstrip('\n') for line in f.readlines()]
+
+        self.return_uids = return_uids
 
 
     def __len__(self):
@@ -105,11 +105,19 @@ class FriendsDataset(Dataset):
             scene = pickle.load(f)
 
         input_ids, attention_mask, label = scene[id]
-        return (
-            torch.tensor(input_ids),
-            torch.tensor(attention_mask),
-            torch.tensor([label])
-        )
+        if self.return_uids:
+            return (
+                id,
+                torch.tensor(input_ids),
+                torch.tensor(attention_mask),
+                torch.tensor([label])
+            )
+        else:
+            return (
+                torch.tensor(input_ids),
+                torch.tensor(attention_mask),
+                torch.tensor([label])
+            )
 
 
     def speaker_to_label(self, str):

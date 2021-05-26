@@ -29,11 +29,11 @@ def evaluate(model, test_loader, device):
     speakers_correct = []
     speakers_total = []
 
-    for id, utterance, speaker in test_loader:
+    for id, ids, utterance, speaker in test_loader:
         scene_id = id[:11]
         number_of_speakers = get_number_of_speakers(scene_id)
 
-        input_ids = id.to(device)
+        input_ids = ids.to(device)
         attention_mask = utterance.to(device)
         labels = speaker.to(device)
         outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
@@ -73,19 +73,10 @@ def evaluate(model, test_loader, device):
 def main(args):
     torch.manual_seed(123)
 
+    eval = True
+
     # Load data
-    dataset = FriendsDataset([
-        'data/json/friends_season_01.json',
-        'data/json/friends_season_02.json',
-        'data/json/friends_season_03.json',
-        'data/json/friends_season_04.json',
-        'data/json/friends_season_05.json',
-        'data/json/friends_season_06.json',
-        'data/json/friends_season_07.json',
-        'data/json/friends_season_08.json',
-        'data/json/friends_season_09.json',
-        'data/json/friends_season_10.json'
-    ])
+    dataset = FriendsDataset(return_uids=eval)
 
     # Load model
     model = BertForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=dataset.num_labels())
@@ -101,7 +92,7 @@ def main(args):
     model.train()
     
     # Evaluation
-    only_eval = True
+    only_eval = eval
     if only_eval:
         model.eval()
         evaluate(None, test_loader, device)
