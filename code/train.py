@@ -14,8 +14,8 @@ except:
 def evaluate(model, test_loader, device):
 
     if not model:
-        model = BertForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=7)
-        model.load_state_dict(torch.load('./results_lr_5e5_concatenated_7.pth'))
+        model = BertForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=6)
+        model.load_state_dict(torch.load('./results_lr_5e5_concatenated_3.pth'))
         model.to(device)
 
     correct = torch.zeros((6))
@@ -40,7 +40,6 @@ def evaluate(model, test_loader, device):
                 correct[label] += 1
             total[label] += 1
 
-        # print("label:", labels, "predicted:", predicted, "correct?", (predicted == labels).sum().item())
     print(correct / total)
     print(correct.sum() / total.sum())
     print(confusion_matrix(pred_list, label_list))
