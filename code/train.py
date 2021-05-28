@@ -1,10 +1,12 @@
 import torch
 import argparse
 import numpy as np
+from collections import Counter
 
 from torch.utils.data import DataLoader
 from sklearn.metrics import confusion_matrix, f1_score
 from dataloader import FriendsDataset, create_splits
+from helpers import get_number_of_speakers
 
 try:
   from transformers import AdamW, BertForSequenceClassification
@@ -46,38 +48,67 @@ def evaluate(model, test_loader, device):
                     long_list.append([ids[ids.nonzero()].T[0].shape[0], ids[ids.nonzero()].T[0]])
                 total[label] += 1
 
-        print(correct / total)
-        print(correct.sum() / total.sum())
-        print("conf", confusion_matrix(pred_list, label_list))
-        
+        # Confidence
         score = np.array(score_list)
-        
         print("Most conf")
         print(score[np.argsort(score[:, 0])][:10])
         print("Least Conf")
         print(score[np.argsort(score[:, 0])][-10:])
         
+        # Longest sentence
         print("longest")
         longest = np.array(long_list)
         print(longest[np.argsort(longest[:, 0])][:10])
+
+        print(correct / total)
+        print(correct.sum() / total.sum())
+        print("conf", confusion_matrix(pred_list, label_list))
+
+        # Detect number of speakers per scene
+        speakers_correct = []
+        speakers_total = []
+
+        for uids, ids, utterance, speaker in test_loader:
+
+            input_ids = ids.to(device)
+            attention_mask = utterance.to(device)
+            labels = speaker.to(device)
+            outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+            _, predicted = torch.max(outputs[1], 1)
+
+            for uid, pred, label in zip(uids, predicted, labels):
+                scene_id = uid[:11]
+                number_of_speakers = get_number_of_speakers(scene_id)
+
+                if pred == label:
+                    correct[label] += 1
+                    speakers_correct.append(number_of_speakers)
+                speakers_total.append(number_of_speakers)
+                total[label] += 1
+
+        speakers_correct_count = Counter(speakers_correct)
+        speakers_total_count = Counter(speakers_total)
+        speaker_distribution = []
+        speaker_acc = []
+
+        for i in range(1, 8):
+            total = speakers_total_count[i]
+            speaker_distribution.append(total)
+            if total:
+                speaker_acc.append(speakers_correct_count[i] / total)
+            else:
+                speaker_acc.append(0)
         
-    
+        print(speaker_distribution)
+        print(speaker_acc)
+
 def main(args):
     torch.manual_seed(123)
 
+    eval = True
+
     # Load data
-    dataset = FriendsDataset([
-        'data/json/friends_season_01.json',
-        'data/json/friends_season_02.json',
-        'data/json/friends_season_03.json',
-        'data/json/friends_season_04.json',
-        'data/json/friends_season_05.json',
-        'data/json/friends_season_06.json',
-        'data/json/friends_season_07.json',
-        'data/json/friends_season_08.json',
-        'data/json/friends_season_09.json',
-        'data/json/friends_season_10.json'
-    ])
+    dataset = FriendsDataset(return_uids=eval)
 
     # Load model
     model = BertForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=dataset.num_labels())
@@ -93,7 +124,7 @@ def main(args):
     model.train()
     
     # Evaluation
-    only_eval = True
+    only_eval = eval
     if only_eval:
         model.eval()
         evaluate(None, test_loader, device)
