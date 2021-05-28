@@ -103,7 +103,7 @@ def evaluate(model, test_loader, device):
         print(speaker_acc)
 
 def main(args):
-    torch.manual_seed(123)
+    torch.manual_seed(args.seed)
 
     eval = True
 
@@ -175,6 +175,7 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', type=float, default=2e-5, help='the learning rate')
     parser.add_argument('--output_dir', type=str, default="./results", help='the learning rate')
     parser.add_argument('--num_train_epochs', type=int, default=10, help='the learning rate')
+    parser.add_argument('--seed', type=int, default=321, help='the seed')
     args = parser.parse_args()
 
     main(args)
