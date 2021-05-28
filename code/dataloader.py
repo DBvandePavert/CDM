@@ -13,8 +13,6 @@ import numpy as np
 
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-from transformers import BertForPreTraining
-from transformers.file_utils import PaddingStrategy
 
 # os.chdir("..")
 
@@ -108,7 +106,7 @@ class FriendsDataset(Dataset):
         return (
             torch.tensor(input_ids),
             torch.tensor(attention_mask),
-            torch.tensor([label])
+            torch.tensor(label)
         )
 
 
@@ -137,7 +135,7 @@ class FriendsDataset(Dataset):
 
     
     def num_labels(self):
-        return 7
+        return 6
 
 
 if __name__ == '__main__':

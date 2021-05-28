@@ -1,5 +1,6 @@
 import torch
 import argparse
+import numpy as np
 
 from torch.utils.data import DataLoader
 from sklearn.metrics import confusion_matrix, f1_score
@@ -12,10 +13,9 @@ except:
 
 
 def evaluate(model, test_loader, device):
-
     if not model:
         model = BertForSequenceClassification.from_pretrained(args.model_checkpoint, num_labels=7)
-        model.load_state_dict(torch.load('./results_lr_2e5_concatenated_other_3.pth'))
+        model.load_state_dict(torch.load('./results_lr_2e5_other_multi_paper_3.pth'))
         model.to(device)
 
     correct = torch.zeros((7))
@@ -23,28 +23,45 @@ def evaluate(model, test_loader, device):
     
     pred_list = []
     label_list = []
+    score_list = []
+    long_list = []
 
-    for id, utterance, speaker in test_loader:
-        input_ids = id.to(device)
-        attention_mask = utterance.to(device)
-        labels = speaker.to(device)
-        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-        _, predicted = torch.max(outputs[1], 1)
+    with torch.no_grad():
+        for id, utterance, speaker in test_loader:
+            input_ids = id.to(device)
+            attention_mask = utterance.to(device)
+            labels = speaker.to(device)
+            outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+            _, predicted = torch.max(outputs[1], 1)
 
-        for pred, label in zip(predicted, labels):
+            for pred, label, ids, conf in zip(predicted, labels, input_ids, torch.max(outputs[1], 1).values):
+                score_list.append([conf, ids[ids.nonzero()].T[0], label])
+            
+                pred_list.append(int(pred))
+                label_list.append(int(label))        
+            
+                if pred == label:
+                    correct[label] += 1
+                else:
+                    long_list.append([ids[ids.nonzero()].T[0].shape[0], ids[ids.nonzero()].T[0]])
+                total[label] += 1
+
+        print(correct / total)
+        print(correct.sum() / total.sum())
+        print("conf", confusion_matrix(pred_list, label_list))
         
-            pred_list.append(int(pred))
-            label_list.append(int(label))        
+        score = np.array(score_list)
         
-            if pred == label:
-                correct[label] += 1
-            total[label] += 1
-
-    print(correct / total)
-    print(correct.sum() / total.sum())
-    print("conf", confusion_matrix(pred_list, label_list))
+        print("Most conf")
+        print(score[np.argsort(score[:, 0])][:10])
+        print("Least Conf")
+        print(score[np.argsort(score[:, 0])][-10:])
+        
+        print("longest")
+        longest = np.array(long_list)
+        print(longest[np.argsort(longest[:, 0])][:10])
+        
     
-
 def main(args):
     torch.manual_seed(123)
 
@@ -116,7 +133,7 @@ def main(args):
         print(f"Epoch: {epoch}")
         model.eval()
         evaluate(model, test_loader, device)
-        torch.save(model.state_dict(), args.output_dir + "_lr_2e5_other_" + str(epoch) + ".pth")
+        torch.save(model.state_dict(), args.output_dir + "_lr_2e5_other_multi_" + str(epoch) + ".pth")
         model.train()
         
 
